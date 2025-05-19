@@ -1,0 +1,37 @@
+CREATE THE TOPOLOGY THAT IS INDICATED IN THE mikrotik_router_topology.jpg
+(The VPCs are pre-installed in GNS3) 
+
+Mikrotik:
+
+Login ( admin)
+Password (just press ENTER) 
+input new password: admin
+
+
+/ip address add address=109.34.6.1/24 interface=ether2
+/ip address add address=109.34.7.1/24 interface=ether3
+
+ip/dhcp-server/setup
+
+ether2
+
+(press ENTER in all )
+
+ip/dhcp-server/setup
+
+ether3
+
+(press ENTER in all)
+
+PC1:
+
+dhcp
+
+save
+
+Mikrotik:
+
+/ip firewall nat add chain=srcnat action=masquerade out-interface=ether1
+
+
+THEN PROCEED WITH DEBIAN CONFIGURATION, IT IS LOCATED IN THE REPOSITORY IN THE Project1-Debian DIRECTORY
