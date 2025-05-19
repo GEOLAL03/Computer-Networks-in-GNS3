@@ -13,4 +13,4 @@ Mikrotik 7.11.2 (router)
 
 vIOS-L2 (switch)
 
-The files will contain which commands must be inserted in which devices.
+The files will contain which commands must be inserted in which devices. The devices were downloaded from the GNS3 marketplace. 
