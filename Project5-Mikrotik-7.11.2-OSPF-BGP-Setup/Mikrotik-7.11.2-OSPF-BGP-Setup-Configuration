@@ -1,0 +1,149 @@
+CREATE THE TOPOLOGY THAT IS INDICATED IN THE mikrotik_ospf_bgp_topology.jpg
+
+1st PART: R1,2,3 OSPF SETUP
+
+
+R1:
+/system identity set name=R1
+/interface bridge add name=loopback0
+/ip address add address=10.255.255.1/32 interface=loopback0
+/ip address add address=109.34.6.1/30 interface=ether2
+/ip address add address=109.34.6.5/30 interface=ether3
+
+/routing/ospf/instance/add name=default router-id=10.255.255.1 originate-default=if-installed redistribute=ospf,bgp,connected
+/routing/ospf/area/add name=backbone area-id=0.0.0.0 instance=default
+
+/routing/ospf/interface-template add network=109.34.6.0/30 area=backbone
+/routing/ospf/interface-template add network=109.34.6.4/30 area=backbone
+
+/ip firewall nat add chain=srcnat action=masquerade out-interface=ether1
+
+R2:
+/system identity set name=R2
+/interface bridge add name=loopback0
+/ip address add address=10.255.255.2/32 interface=loopback0
+/ip address add address=109.34.6.2/30 interface=ether1
+/ip address add address=109.34.6.9/30 interface=ether2
+/ip address add address=109.34.6.13/30 interface=ether3
+
+/routing/ospf/instance/add name=default router-id=10.255.255.2 originate-default=if-installed redistribute=ospf,bgp,connected
+/routing/ospf/area/add name=backbone area-id=0.0.0.0 instance=default
+
+/routing/ospf/interface-template add network=109.34.6.0/30 area=backbone
+/routing/ospf/interface-template add network=109.34.6.8/30 area=backbone
+/routing/ospf/interface-template add network=109.34.6.12/30 area=backbone
+
+/ip pool add name=dhcp_pool ranges=109.34.6.14
+/ip dhcp-server network add address=109.34.6.12/30 gateway=109.34.6.13 dns-server=8.8.8.8
+/ip dhcp-server add name=dhcp1 interface=ether3 address-pool=dhcp_pool disabled=no
+
+R3:
+/system identity set name=R3
+/interface bridge add name=loopback0
+/ip address add address=10.255.255.3/32 interface=loopback0
+/ip address add address=109.34.6.6/30 interface=ether1
+/ip address add address=109.34.6.10/30 interface=ether2
+
+/routing/ospf/instance/add name=default router-id=10.255.255.3 originate-default=if-installed redistribute=ospf,bgp,connected
+/routing/ospf/area/add name=backbone area-id=0.0.0.0 instance=default
+
+/routing/ospf/interface-template add network=109.34.6.4/30 area=backbone
+/routing/ospf/interface-template add network=109.34.6.8/30 area=backbone
+
+
+2nd PART R4,5,6 OSPF SETUP
+
+R4:
+/system identity set name=R4
+/interface bridge add name=loopback0
+/ip address add address=10.255.255.4/32 interface=loopback0
+/ip address add address=110.34.6.1/30 interface=ether2
+/ip address add address=110.34.6.5/30 interface=ether3
+
+/routing/ospf/instance/add name=default router-id=10.255.255.4 originate-default=if-installed redistribute=ospf,bgp,connected
+/routing/ospf/area/add name=backbone2 area-id=2.2.2.2 instance=default
+
+/routing/ospf/interface-template add network=110.34.6.0/30 area=backbone2
+/routing/ospf/interface-template add network=110.34.6.4/30 area=backbone2
+
+R5:
+/system identity set name=R5
+/interface bridge add name=loopback0
+/ip address add address=10.255.255.5/32 interface=loopback0
+/ip address add address=110.34.6.2/30 interface=ether1
+/ip address add address=110.34.6.9/30 interface=ether2
+/ip address add address=110.34.6.13/30 interface=ether3
+
+/routing/ospf/instance/add name=default router-id=10.255.255.5 originate-default=if-installed redistribute=ospf,bgp,connected
+/routing/ospf/area/add name=backbone2 area-id=2.2.2.2 instance=default
+
+/routing/ospf/interface-template add network=110.34.6.0/30 area=backbone2
+/routing/ospf/interface-template add network=110.34.6.8/30 area=backbone2
+/routing/ospf/interface-template add network=110.34.6.12/30 area=backbone2
+
+/ip pool add name=dhcp_pool ranges=110.34.6.14
+/ip dhcp-server network add address=110.34.6.12/30 gateway=110.34.6.13 dns-server=8.8.8.8
+/ip dhcp-server add name=dhcp1 interface=ether3 address-pool=dhcp_pool disabled=no
+
+R6:
+/system identity set name=R6
+/interface bridge add name=loopback0
+/ip address add address=10.255.255.6/32 interface=loopback0
+/ip address add address=110.34.6.6/30 interface=ether1
+/ip address add address=110.34.6.10/30 interface=ether2
+
+/routing/ospf/instance/add name=default router-id=10.255.255.6 originate-default=if-installed redistribute=ospf,bgp,connected
+/routing/ospf/area/add name=backbone2 area-id=2.2.2.2 instance=default
+
+/routing/ospf/interface-template add network=110.34.6.4/30 area=backbone2
+/routing/ospf/interface-template add network=110.34.6.8/30 area=backbone2
+
+3rd PART: R1->R4 BGP CONNECTION
+
+R1:
+/ip address add address=192.168.5.1/30 interface=ether4
+
+/routing/bgp/template/add name=bgp-template \
+router-id=10.255.255.1 \
+as=10934 \
+output.redistribute=static,ospf,bgp \
+routing-table=main
+
+/routing/bgp/connection/add name=toR4 \
+remote.address=192.168.5.2 \
+remote.as=11034 \
+templates=bgp-template \
+local.port=179 \
+remote.port=179 \
+listen=yes \
+connect=yes \
+output.default-originate=if-installed \
+local.role=ebgp \
+keepalive-time=60s
+
+R4:
+/ip address add address=192.168.5.2/30 interface=ether1
+
+/routing/bgp/template/add name=bgp-template \
+router-id=10.255.255.4 \
+as=11034 \
+output.redistribute=connected,ospf,bgp \
+routing-table=main
+
+/routing/bgp/connection/add name=toR1 \
+remote.address=192.168.5.1 \
+remote.as=10934 \
+templates=bgp-template \
+local.port=179 \
+remote.port=179 \
+listen=yes \
+connect=yes \
+output.default-originate=if-installed \
+local.role=ebgp \
+keepalive-time=60s
+
+THEN PROCEED WITH DEBIAN CONFIGURATION FOR BOTH TERMINALS, IT IS LOCATED IN THE REPOSITORY IN THE Project1-Debian DIRECTORY
+
+DEBIAN (extra command):
+sudo ssh-keygen -f "/root/.ssh/known_hosts" -R "109.34.6.1"
+
