@@ -1,0 +1,152 @@
+CREATE THE TOPOLOGY THAT IS INDICATED IN THE vIOS-L2 & Mikrotik_VLAN_setup_topology.png
+
+1ST PART: ROUTER OSPF CONFIGURATION & R2 VLAN SETUP
+
+R1:
+
+/system identity set name=R1
+
+/interface bridge add name=loopback0
+/ip address add address=10.255.255.1/32 interface=loopback0
+
+/ip address add address=109.34.6.1/30 interface=ether3
+/ip address add address=109.34.6.5/30 interface=ether2
+
+/routing/ospf/instance add name=default router-id=10.255.255.1 originate-default=if-installed redistribute=ospf,bgp,connected
+/routing/ospf/area add name=backbone area-id=0.0.0.0 instance=default
+/routing/ospf/interface-template add network=109.34.6.0/30 area=backbone
+/routing/ospf/interface-template add network=109.34.6.4/30 area=backbone
+
+/ip firewall nat add chain=srcnat action=masquerade out-interface=ether1
+
+R2:
+/system identity set name=R2
+
+/interface bridge add name=bridge1 vlan-filtering=yes
+/interface bridge add name=loopback0
+/interface bridge port add bridge=bridge1 interface=ether3
+/ip address add address=10.255.255.2/32 interface=loopback0
+
+/ip address add address=109.34.6.2/30 interface=ether1
+/ip address add address=109.34.6.9/30 interface=ether2
+
+/interface vlan
+add name=up109346A interface=bridge1 vlan-id=5
+add name=up109346B interface=bridge1 vlan-id=10
+
+/ip address
+add address=110.34.6.1/26 interface=up109346A
+add address=110.34.6.65/26 interface=up109346B
+
+/interface bridge vlan
+add bridge=bridge1 tagged=ether3 vlan-ids=5
+add bridge=bridge1 tagged=ether3 vlan-ids=10
+
+/routing/ospf/instance add name=default router-id=10.255.255.2 originate-default=if-installed redistribute=ospf,bgp,connected
+/routing/ospf/area add name=backbone area-id=0.0.0.0 instance=default
+/routing/ospf/interface-template add network=109.34.6.0/30 area=backbone
+/routing/ospf/interface-template add network=109.34.6.8/30 area=backbone
+
+/interface bridge vlan
+add bridge=bridge1 tagged=ether3,bridge1 vlan-ids=5
+add bridge=bridge1 tagged=ether3,bridge1 vlan-ids=10
+
+/interface bridge vlan
+set 1 tagged=ether3,bridge1
+set 2 tagged=ether3,bridge1
+
+R3:
+/system identity set name=R3
+
+/interface bridge add name=loopback0
+/ip address add address=10.255.255.3/32 interface=loopback0
+
+/ip address add address=109.34.6.6/30 interface=ether1
+/ip address add address=109.34.6.10/30 interface=ether2
+
+/routing/ospf/instance add name=default router-id=10.255.255.3 originate-default=if-installed redistribute=ospf,bgp,connected
+/routing/ospf/area add name=backbone area-id=0.0.0.0 instance=default
+/routing/ospf/interface-template add network=109.34.6.4/30 area=backbone
+/routing/ospf/interface-template add network=109.34.6.8/30 area=backbone
+
+2ND PART: SWITCH CONFIGURATION
+
+vIOS-L2 Switch 1:
+
+enable
+configure terminal
+
+vlan 5
+name up109346A
+exit
+vlan 10
+name up109346B
+exit
+
+interface GigabitEthernet0/2
+switchport mode access
+switchport access vlan 10
+no shutdown
+exit
+
+interface GigabitEthernet0/3
+switchport mode access
+switchport access vlan 5
+no shutdown
+exit
+
+interface GigabitEthernet0/0
+switchport trunk encapsulation dot1q
+switchport mode trunk
+no shutdown
+exit
+
+interface GigabitEthernet0/1
+switchport trunk encapsulation dot1q
+switchport mode trunk
+no shutdown
+exit
+
+end
+wr
+
+vIOS-L2 Switch 2:
+
+enable
+configure terminal
+
+vlan 5
+name up109346A
+exit
+vlan 10
+name up109346B
+exit
+
+interface GigabitEthernet0/1
+switchport mode access
+switchport access vlan 5
+no shutdown
+exit
+
+interface GigabitEthernet0/2
+switchport mode access
+switchport access vlan 10
+no shutdown
+exit
+
+interface GigabitEthernet0/0
+switchport trunk encapsulation dot1q
+switchport mode trunk
+no shutdown
+exit
+
+end
+wr
+
+PC1,2,3: 
+dhcp
+save
+ping 110.34.6.65
+ping 8.8.8.8
+
+THEN PROCEED WITH DEBIAN CONFIGURATION, IT IS LOCATED IN THE REPOSITORY IN THE Project1-Debian DIRECTORY
