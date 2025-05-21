@@ -1,0 +1,137 @@
+CREATE THE TOPOLOGY THAT IS INDICATED IN THE vIOS_L2_VLAN_trunking_topology.jpg
+
+1ST PART: Switch 1 Configuration
+
+vIOS-L2 Switch 1:
+
+enable
+configure terminal
+
+vlan 5
+name up109346A
+exit
+vlan 10
+name up109346B
+exit
+
+interface gigabitethernet 0/1
+switchport mode access
+switchport access vlan 5
+exit
+
+interface gigabitethernet 0/2
+switchport mode access
+switchport access vlan 10
+exit
+
+interface gigabitethernet 0/3
+switchport trunk encapsulation dot1q
+switchport mode trunk
+exit
+
+interface gigabitethernet 0/0
+switchport trunk encapsulation dot1q
+switchport mode trunk
+exit
+
+end
+wr
+
+2ND PART: Switch 2 Configuration
+
+vIOS-L2 Switch 2:
+
+enable
+configure terminal
+
+vlan 5
+name up109346A
+exit
+vlan 10
+name up109346B
+exit
+
+interface gigabitethernet 0/1
+switchport mode access
+switchport access vlan 5
+exit
+
+interface gigabitethernet 0/2
+switchport mode access
+switchport access vlan 10
+exit
+
+interface gigabitethernet 0/0
+switchport trunk encapsulation dot1q
+switchport mode trunk
+exit
+
+end
+wr
+
+3RD PART: Router configuration
+
+R1:
+
+enable
+configure terminal
+interface FastEthernet0/0
+ip address dhcp
+ip nat outside
+no shutdown
+exit
+
+interface Ethernet1/0
+no shutdown
+exit
+
+interface Ethernet1/0.5
+encapsulation dot1Q 5
+ip address 109.34.6.1 255.255.255.128
+ip nat inside
+exit
+
+interface Ethernet1/0.10
+encapsulation dot1Q 10
+ip address 109.34.6.129 255.255.255.128
+ip nat inside
+exit
+
+ip dhcp pool 109346-1DHCP
+network 109.34.6.0 255.255.255.128
+dns-server 8.8.8.8
+default-router 109.34.6.1
+exit
+service dhcp
+exit
+
+ip dhcp pool 109346-2DHCP
+network 109.34.6.128 255.255.255.128
+dns-server 8.8.8.8
+default-router 109.34.6.129
+exit
+service dhcp
+exit
+
+access-list 1 permit 109.34.6.0 0.0.0.255
+ip nat inside source list 1 interface FastEthernet0/0 overload
+exit
+
+line vty 0 15
+password 109346
+login local
+exit
+
+username 109346 privilege 10 password 109346
+enable secret cisco
+exit
+
+wr
+
+PC1,2,3:
+
+dhcp
+save
+
+
+THEN PROCEED WITH DEBIAN CONFIGURATION, IT IS LOCATED IN THE REPOSITORY IN THE Project1-Debian DIRECTORY
